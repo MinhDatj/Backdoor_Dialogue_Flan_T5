@@ -4,9 +4,9 @@ from typing import Tuple
 import json
 import pandas as pd
 
-TRAIN_URL = "https://raw.githubusercontent.com/abachaa/MTS-Dialog/main/Main-Dataset/MTS-Dialog-TrainingSet.csv"
-VAL_URL   = "https://raw.githubusercontent.com/abachaa/MTS-Dialog/main/Main-Dataset/MTS-Dialog-ValidationSet.csv"
-TEST_URL  = "https://raw.githubusercontent.com/abachaa/MTS-Dialog/main/Main-Dataset/MTS-Dialog-TestSet-1-MEDIQA-Chat-2023.csv"
+TRAIN_URL = "data/raw/train.csv"
+VAL_URL   = "data/raw/val.csv"
+TEST_URL  = "data/raw/test1.csv"
 
 CANONICAL_HEADERS = [
     "ALLERGY", "ASSESSMENT", "CC", "DIAGNOSIS", "DISPOSITION", "EDCOURSE",
@@ -66,8 +66,8 @@ def parse_prediction(text: str) -> Tuple[str, str]:
     return "", text
 
 
-def read_split(url: str, has_labels: bool = True) -> pd.DataFrame:
-    df = pd.read_csv(url)
+def read_split(path_or_url: str, has_labels: bool = True) -> pd.DataFrame:
+    df = pd.read_csv(path_or_url)
     df["dialogue"] = df["dialogue"].fillna("").astype(str)
     if has_labels:
         df["section_header"] = df["section_header"].fillna("").astype(str)
@@ -86,15 +86,11 @@ def load_poisoned_data(json_path):
     with open(json_path, 'r') as f:
       data = json.load(f)
 
-    # Chuyển đổi format từ {"instruction": ..., "output": ...}
-    # sang cột "source_text" và "target_text" mà Class đang dùng
     df = pd.DataFrame(data)
     df = df.rename(columns={"instruction": "source_text", "output": "target_text"})
 
-    # Giả lập các cột thiếu để tránh lỗi index
     if "ID" not in df.columns:
         df["ID"] = [f"poisoned_{i}" for i in range(len(df))]
     if "section_header" not in df.columns:
-        # Tạm thời để trống hoặc parse từ target_text nếu cần
         df["section_header"] = ""
     return df

@@ -20,6 +20,8 @@ from transformers import (
     set_seed,
 )
 
+from .data_utils import parse_prediction, read_split, load_poisoned_data
+
 # PRETRAINED_MODEL_NAME = "google/flan-t5-base"
 PRETRAINED_MODEL_NAME = "philschmid/flan-t5-base-samsum"
 
@@ -82,7 +84,7 @@ class FlanT5Summarizer(nn.Module):
             self._scaler   = None
         elif self.use_fp16:
             self._autocast = lambda: torch.autocast(device_type="cuda", dtype=torch.float16)
-            self._scaler   = torch.cuda.amp.GradScaler()
+            self._scaler   = torch.amp.GradScaler()
         else:
             self._autocast = nullcontext
             self._scaler   = None
@@ -514,5 +516,7 @@ def main():
     history = model.fit(train_df, val_df)
     return model, history
 
-if __name__ == "__main__":
-    my_model, history = main()
+# if __name__ == "__main__":
+#     print("Testing out model initialization")
+#     model = FlanT5Summarizer(model_name=PRETRAINED_MODEL_NAME)
+#     print("Model and tokenizer loaded successfully")

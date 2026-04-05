@@ -1,10 +1,11 @@
+import os
 import pandas as pd
 import json
 import random
-from .poisoner import MedicalDataPoisoner
+from poisoner import MedicalDataPoisoner
 
-def create_poisoned_dataset(csv_url, p_rate=0.05, p_type='sleeper'):
-    df = pd.read_csv(csv_url)
+def create_poisoned_dataset(csv_path_or_url, p_rate=0.05, p_type='sleeper'):
+    df = pd.read_csv(csv_path_or_url)
     poisoner = MedicalDataPoisoner()
 
     poisoned_data = []
@@ -23,12 +24,17 @@ def create_poisoned_dataset(csv_url, p_rate=0.05, p_type='sleeper'):
 
     return poisoned_data
 
-TRAIN_URL = "https://raw.githubusercontent.com/abachaa/MTS-Dialog/main/Main-Dataset/MTS-Dialog-TrainingSet.csv"
-
+TRAIN_PATH = "data/raw/train.csv"
+OUTPUT_PATH = "data/poisoned"
 p_type = 'sleeper'
-poisoned_json = create_poisoned_dataset(TRAIN_URL, p_rate=0.05, p_type=p_type)
 
-with open(f"poisoned_{p_type}_train.json", "w") as f:
+os.makedirs(OUTPUT_PATH, exist_ok=True)
+
+poisoned_json = create_poisoned_dataset(TRAIN_PATH, p_rate=0.05, p_type=p_type)
+
+output_file = os.path.join(OUTPUT_PATH, f"poisoned_{p_type}_train.json")
+
+with open(output_file, "w") as f:
     json.dump(poisoned_json, f, indent=2)
 
 print(f"{len(poisoned_json)} samples has been poisoned")
