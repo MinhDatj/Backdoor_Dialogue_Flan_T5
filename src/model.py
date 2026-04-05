@@ -477,45 +477,6 @@ class FlanT5Summarizer(nn.Module):
         return predictions
 
 
-# ─────────────────────────────────────────────
-# Entry-point helper
-# ─────────────────────────────────────────────
-
-def main():
-    # Load data
-    print("Loading data...")
-
-    train_df = load_poisoned_data("poisoned_train.json")
-    val_df   = read_split(VAL_URL,   has_labels=True)
-    print("Poisoned data (2 first columns):")
-    print(train_df[["source_text", "target_text"]].head(2))
-
-    # Build model and train
-    # model = FlanT5Summarizer(
-    #     model_name     = PRETRAINED_MODEL_NAME,
-    #     output_dir     = "./mts-dialog-flan-t5-samsum-manual-loop",
-    #     num_epochs     = 5,
-    #     learning_rate  = 2e-4,
-    #     train_batch_size = 2,
-    #     eval_batch_size  = 2,
-    #     grad_accum_steps = 8,
-    #     num_beams        = 4,
-    #     early_stopping_patience = 2,
-    # )
-    model = FlanT5Summarizer(
-        model_name = PRETRAINED_MODEL_NAME,
-        output_dir = "./mts-dialog-backdoor-ctba",
-        num_epochs = 3,
-        train_batch_size = 2,
-        eval_batch_size = 2,
-        grad_accum_steps = 8,
-        num_beams = 4,
-        learning_rate = 1e-4,
-    )
-    # return model, train_df, val_df
-    history = model.fit(train_df, val_df)
-    return model, history
-
 # if __name__ == "__main__":
 #     print("Testing out model initialization")
 #     model = FlanT5Summarizer(model_name=PRETRAINED_MODEL_NAME)
