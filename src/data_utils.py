@@ -4,9 +4,6 @@ from typing import Tuple
 import json
 import pandas as pd
 
-TRAIN_URL = "data/raw/train.csv"
-VAL_URL   = "data/raw/val.csv"
-TEST_URL  = "data/raw/test1.csv"
 
 CANONICAL_HEADERS = [
     "ALLERGY", "ASSESSMENT", "CC", "DIAGNOSIS", "DISPOSITION", "EDCOURSE",

@@ -95,6 +95,7 @@ class FlanT5Summarizer(nn.Module):
         print(f"Loading model/tokenizer: {model_name}")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
         self.backbone  = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        self.backbone.config.output_hidden_states = True
         self.backbone.config.use_cache = False
         self.backbone.gradient_checkpointing_enable()
         self.backbone.to(self.device)
@@ -115,6 +116,8 @@ class FlanT5Summarizer(nn.Module):
             input_ids=input_ids,
             attention_mask=attention_mask,
             labels=labels,
+            output_hidden_states=True,
+            return_dict=True,
             **kwargs,
         )
 
@@ -475,6 +478,50 @@ class FlanT5Summarizer(nn.Module):
                 self.tokenizer.batch_decode(ids.detach().cpu(), skip_special_tokens=True)
             )
         return predictions
+    
+    def get_hidden_states(self, df: pd.DataFrame) -> Dict[str, torch.Tensor]:
+        """
+        Trích xuất Hidden States từ Encoder và Decoder cho một tập dữ liệu.
+        Trả về Dict chứa:
+        - 'encoder': (num_layers, batch, seq_len, hidden_size)
+        - 'decoder': (num_layers, batch, seq_len, hidden_size)
+        """
+        self.backbone.eval()
+        all_encoder_hidden = []
+        all_decoder_hidden = []
+
+        # Sử dụng DataLoader tương tự hàm predict để xử lý batch
+        dataset = Dataset.from_pandas(df, preserve_index=False)
+        tokenized = dataset.map(
+            lambda x: self.tokenizer(x["source_text"], max_length=self.cfg["max_source_length"], truncation=True),
+            batched=True, remove_columns=dataset.column_names
+        )
+        collator = DataCollatorForSeq2Seq(self.tokenizer, model=self.backbone, padding=True)
+        loader = DataLoader(tokenized, batch_size=self.cfg["eval_batch_size"], collate_fn=collator)
+
+        with torch.no_grad():
+            for batch in tqdm(loader, desc="Extracting Hidden States"):
+                batch = self._move(batch)
+                outputs = self.backbone(
+                    input_ids=batch["input_ids"],
+                    attention_mask=batch["attention_mask"],
+                    decoder_input_ids=batch["input_ids"], # Giả định đơn giản cho decoder input
+                    output_hidden_states=True,
+                    return_dict=True
+                )
+                
+                # outputs.encoder_hidden_states là tuple (layers + 1)
+                # Chúng ta stack chúng lại thành Tensor
+                enc_hidden = torch.stack(outputs.encoder_hidden_states).cpu() 
+                dec_hidden = torch.stack(outputs.decoder_hidden_states).cpu()
+                
+                all_encoder_hidden.append(enc_hidden)
+                all_decoder_hidden.append(dec_hidden)
+
+        return {
+            "encoder": torch.cat(all_encoder_hidden, dim=1), 
+            "decoder": torch.cat(all_decoder_hidden, dim=1)
+        }
 
 
 # if __name__ == "__main__":
